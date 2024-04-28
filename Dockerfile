@@ -1,17 +1,14 @@
-FROM golang:1.17 as builder
+FROM golang:1.17-alpine3.14
 
 WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
-RUN go mod download && go build -o main .
+RUN go build -o backend_task .
 
-FROM alpine:latest
+CMD [ "./backend_task" ]
 
-WORKDIR /app
-
-COPY --from=builder /app/main .
-
-EXPOSE 8000
-
-CMD ["./main"]
+EXPOSE 8080

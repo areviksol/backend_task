@@ -56,5 +56,5 @@ func (c *Controller) HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 	<-done
 
-	w.Write([]byte("OK"))
+	w.Write([]byte("Notification Send"))
 }

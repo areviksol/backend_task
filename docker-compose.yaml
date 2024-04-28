@@ -1,30 +1,20 @@
-version: "3.8"
+version: "3"
 
 services:
-  backend:
-    build:
-      context: .
-      dockerfile: backend.Dockerfile
-      args:
-        - BOT_TOKEN=${BOT_TOKEN}
-        - ADMIN_CHAT_ID=${ADMIN_CHAT_ID}
-        - MONGO_URI=${MONGO_URI}
+  app:
+    image: go-app
+    build: .
     ports:
-      - "5000:5000"
-
-  bot:
-    build:
-      context: .
-      dockerfile: bot.Dockerfile
-      args:
-        - BOT_TOKEN=${BOT_TOKEN}
-        - ADMIN_CHAT_ID=${ADMIN_CHAT_ID}
+      - "8080:8080" 
+    depends_on:     
+      - db
+    env_file:
+      - .env
     environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      ADMIN_CHAT_ID: ${ADMIN_CHAT_ID}
-
-  mongo:
+      ADDR: "0.0.0.0:8080" 
+  db:
     image: mongo:latest
+    restart: always
     ports:
       - "27017:27017"
     volumes:

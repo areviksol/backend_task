@@ -16,5 +16,5 @@ func NewServer(controller *controller.Controller) *Server {
 
 func (s *Server) Run() error {
 	http.HandleFunc("/", s.Controller.HandleRequest)
-	return http.ListenAndServe(":5000", nil)
+	return http.ListenAndServe(":8080", nil)
 }
