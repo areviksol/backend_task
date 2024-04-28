@@ -12,7 +12,7 @@ import (
 	"github.com/areviksol/backend_task/model"
 	"github.com/areviksol/backend_task/processor"
 	"github.com/areviksol/backend_task/server"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/areviksol/backend_task/bot"
 	"github.com/joho/godotenv"
 )
 
@@ -41,9 +41,9 @@ func main() {
 		return
 	}
 
-	bot, err := tgbotapi.NewBotAPI(botToken)
+	botInstance, err := bot.NewTelegramBot(botToken, adminChatID)
 	if err != nil {
-		fmt.Println("Error creating Telegram bot:", err)
+		fmt.Println("Error creating Telegram bot instance:", err)
 		return
 	}
 
@@ -63,30 +63,13 @@ func main() {
 
 	proc := processor.NewHTTPProcessor(model, eventBus)
 
-	ctrl := controller.NewController(proc, eventBus, model)
+	ctrl := controller.NewController(proc, eventBus, model, botInstance)
 	srv := server.NewServer(ctrl)
-
+	
 	go func() {
 		defer wg.Done()
 		if err := srv.Run(); err != nil {
 			fmt.Println("Error starting server:", err)
-		}
-	}()
-
-	eventBus.Publish("update_model", "New data")
-	adminChannel := eventBus.SubscribeAdmin()
-
-	go func() {
-		defer wg.Done()
-		for {
-			data := <-adminChannel
-			if identifier, ok := data.(string); ok {
-				msg := tgbotapi.NewMessage(adminChatID, fmt.Sprintf("Record not found: %s", identifier))
-				_, err := bot.Send(msg)
-				if err != nil {
-					fmt.Println("Error sending notification to admin:", err)
-				}
-			}
 		}
 	}()
 
