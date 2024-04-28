@@ -1,21 +1,23 @@
 package model
 
-// Model struct represents the data model
+import (
+	"fmt"
+	"github.com/areviksol/backend_task/database"
+)
+
 type Model struct {
-	data string
+	DB *database.Database
 }
 
-// NewModel creates a new instance of Model
-func NewModel(initialData string) *Model {
-	return &Model{data: initialData}
+func NewModel(db *database.Database) *Model {
+	return &Model{DB: db}
 }
 
-// SetData updates the model's data
-func (m *Model) SetData(newData string) {
-	m.data = newData
+func (m *Model) CheckRecord(identifier string) (bool, error) {
+	fmt.Println(m.DB.CheckRecord(identifier))
+	return m.DB.CheckRecord(identifier)
 }
 
-// GetData returns the model's data
-func (m *Model) GetData() string {
-	return m.data
+func (m *Model) AddRecord(identifier string) error {
+	return m.DB.AddRecord(identifier)
 }

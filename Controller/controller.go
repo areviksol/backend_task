@@ -1,42 +1,45 @@
 package controller
 
 import (
-	"fmt"
-	"sync"
+	"net/http"
 
 	"github.com/areviksol/backend_task/eventbus"
 	"github.com/areviksol/backend_task/model"
-	"github.com/areviksol/backend_task/view"
+	"github.com/areviksol/backend_task/processor"
 )
 
-// Controller struct manages interactions between Model and View
 type Controller struct {
-	model    *model.Model
-	view     *view.View
-	eventBus *eventbus.EventBus
-	wg       *sync.WaitGroup
+	Processor processor.Processor
+	EventBus  *eventbus.EventBus
+	Model     *model.Model
 }
 
-// NewController creates a new instance of Controller
-func NewController(model *model.Model, view *view.View, eventBus *eventbus.EventBus, wg *sync.WaitGroup) *Controller {
+func NewController(processor processor.Processor, eventBus *eventbus.EventBus, model *model.Model) *Controller {
 	return &Controller{
-		model:    model,
-		view:     view,
-		eventBus: eventBus,
-		wg:       wg,
+		Processor: processor,
+		EventBus:  eventBus,
+		Model:     model,
 	}
 }
 
-// Run starts the controller
-func (c *Controller) Run() {
-	defer c.wg.Done()
+func (c *Controller) HandleRequest(w http.ResponseWriter, r *http.Request) {
+	queryValues := r.URL.Query()
+	identifier := queryValues.Get("id")
 
-	// Listen for events
-	for {
-		select {
-		case data := <-c.eventBus.Subscribe("update_model"):
-			c.model.SetData(data.(string))
-			fmt.Println("Model updated:", c.model.GetData())
-		}
+	if identifier == "" {
+		http.Error(w, "Missing identifier parameter", http.StatusBadRequest)
+		return
 	}
+
+	exists, err := c.Model.CheckRecord(identifier)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
+		c.EventBus.Publish("record_not_found", identifier)
+	}
+
+	w.Write([]byte("OK"))
 }

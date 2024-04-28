@@ -1,28 +1,94 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strconv"
 	"sync"
 
 	"github.com/areviksol/backend_task/controller"
+	"github.com/areviksol/backend_task/database"
 	"github.com/areviksol/backend_task/eventbus"
 	"github.com/areviksol/backend_task/model"
-	"github.com/areviksol/backend_task/view"
+	"github.com/areviksol/backend_task/processor"
+	"github.com/areviksol/backend_task/server"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("Error loading .env file:", err)
+		return
+	}
+	botToken := os.Getenv("BOT_TOKEN")
+	if botToken == "" {
+		fmt.Println("BOT_TOKEN environment variable is not set")
+		return
+	}
 
-	model := model.NewModel("Initial data")
+	adminChatIDStr := os.Getenv("ADMIN_CHAT_ID")
+	if adminChatIDStr == "" {
+		fmt.Println("ADMIN_CHAT_ID environment variable is not set")
+		return
+	}
 
-	eventBus := eventbus.NewEventBus()
+	adminChatID, err := strconv.ParseInt(adminChatIDStr, 10, 64)
+	if err != nil {
+		fmt.Println("Error parsing ADMIN_CHAT_ID:", err)
+		return
+	}
 
-	controller := controller.NewController(model, view.NewView(), eventBus, &wg)
+	bot, err := tgbotapi.NewBotAPI(botToken)
+	if err != nil {
+		fmt.Println("Error creating Telegram bot:", err)
+		return
+	}
 
-	go controller.Run()
+	db, err := database.NewDatabase()
+	if err != nil {
+		fmt.Println("Error creating database:", err)
+		return
+	}
+	model := model.NewModel(db)
 
-	// Simulate an event where the model is updated
+	eventBus, err := eventbus.NewEventBus(botToken)
+
+	if err != nil {
+		fmt.Println("Error creating eventbus:", err)
+		return
+	}
+
+	proc := processor.NewHTTPProcessor(model, eventBus)
+
+	ctrl := controller.NewController(proc, eventBus, model)
+	srv := server.NewServer(ctrl)
+
+	go func() {
+		defer wg.Done()
+		if err := srv.Run(); err != nil {
+			fmt.Println("Error starting server:", err)
+		}
+	}()
+
 	eventBus.Publish("update_model", "New data")
+	adminChannel := eventBus.SubscribeAdmin()
+
+	go func() {
+		defer wg.Done()
+		for {
+			data := <-adminChannel
+			if identifier, ok := data.(string); ok {
+				msg := tgbotapi.NewMessage(adminChatID, fmt.Sprintf("Record not found: %s", identifier))
+				_, err := bot.Send(msg)
+				if err != nil {
+					fmt.Println("Error sending notification to admin:", err)
+				}
+			}
+		}
+	}()
 
 	wg.Wait()
 }
