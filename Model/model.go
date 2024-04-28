@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"github.com/areviksol/backend_task/database"
 )
 
@@ -14,7 +13,6 @@ func NewModel(db *database.Database) *Model {
 }
 
 func (m *Model) CheckRecord(identifier string) (bool, error) {
-	fmt.Println(m.DB.CheckRecord(identifier))
 	return m.DB.CheckRecord(identifier)
 }
 

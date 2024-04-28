@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-
+	"strconv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +35,7 @@ func NewDatabase() (*Database, error) {
 		return nil, fmt.Errorf("failed to ping MongoDB: %v", err)
 	}
 
-	database := client.Database("your_database_name")
+	database := client.Database("task")
 	collection := database.Collection("records")
 
 	return &Database{
@@ -46,7 +46,12 @@ func NewDatabase() (*Database, error) {
 }
 
 func (d *Database) CheckRecord(identifier string) (bool, error) {
-	filter := bson.M{"identifier": identifier}
+	id, err := strconv.ParseInt(identifier, 10, 64)
+	if err != nil {
+		fmt.Println("Wrong id type")
+		return false, fmt.Errorf("failed to check record: %v", err) 
+	}
+	filter := bson.M{"identifier": id}
 	count, err := d.collection.CountDocuments(context.Background(), filter)
 	if err != nil {
 		return false, fmt.Errorf("failed to check record: %v", err)

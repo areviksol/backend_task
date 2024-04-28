@@ -18,7 +18,7 @@ import (
 
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Error loading .env file:", err)
 		return

@@ -20,7 +20,7 @@ func NewEventBus(botToken string) (*EventBus, error) {
 
 	return &EventBus{
 		subscribers: make(map[string][]chan interface{}),
-		bot:         bot, 
+		bot:         bot,
 	}, nil
 }
 

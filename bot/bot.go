@@ -25,19 +25,17 @@ func NewTelegramBot(token string, admin_chat_id int64) (*TelegramBot, error) {
 	}, nil
 }
 
-func (t *TelegramBot)SendNotificationToAdmin(adminChannel chan interface{}) {
-	for {
-		data := <-adminChannel
-		if identifier, ok := data.(string); ok {
-			msg := tgbotapi.NewMessage(int64(t.admin_chat_id), fmt.Sprintf("Record not found: %s", identifier))
-			_, err := t.botAPI.Send(msg)
-			if err != nil {
-				fmt.Println("Error sending notification to admin:", err)
-			}
+func (t *TelegramBot) SendNotificationToAdmin(adminChannel chan interface{}, done chan struct{}) {
+	defer close(done)
+	data := <-adminChannel
+	if identifier, ok := data.(string); ok {
+		msg := tgbotapi.NewMessage(int64(t.admin_chat_id), fmt.Sprintf("Record not found: %s", identifier))
+		_, err := t.botAPI.Send(msg)
+		if err != nil {
+			fmt.Println("Error sending notification to admin:", err)
 		}
 	}
 }
-
 
 func (t *TelegramBot) SendMessage(chatID int64, message string) {
 	msg := tgbotapi.NewMessage(chatID, message)
@@ -46,4 +44,3 @@ func (t *TelegramBot) SendMessage(chatID int64, message string) {
 		log.Printf("Error sending message to chat ID %d: %v", chatID, err)
 	}
 }
-
